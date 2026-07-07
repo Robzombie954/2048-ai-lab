@@ -199,7 +199,9 @@ function LearningCurve({ all }: { all: StatBucket[] }) {
   // which shoves the whole panel around. Completed-only settles it.
   const rawSummary = useMemo(() => {
     const complete = partialBucket && all.length > 0 ? all.slice(0, -1) : all
-    return summarizeTrajectory(complete.map(bucketX), complete.map(safeBucketMean), 14)
+    // Wide window (40 buckets ≈ 4k games): a noisy high-variance model's slope
+    // swings wildly over 14 buckets and would flip the label every update.
+    return summarizeTrajectory(complete.map(bucketX), complete.map(safeBucketMean), 40)
   }, [all, partialBucket])
 
   // Latch the shown trend so 'converged' never flickers back to 'converging'.

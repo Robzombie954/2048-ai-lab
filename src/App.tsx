@@ -109,7 +109,7 @@ export default function App() {
           )}
         </aside>
 
-        <main className="overflow-y-auto">
+        <main className="overflow-y-scroll [scrollbar-gutter:stable]">
           <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 p-4 sm:p-6">
             <ScoreHeader />
             <BoardStage />
@@ -247,7 +247,7 @@ export default function App() {
           </div>
         </main>
 
-        <aside className="hidden overflow-y-auto border-l border-white/5 xl:block">
+        <aside className="hidden overflow-y-scroll border-l border-white/5 [scrollbar-gutter:stable] xl:block">
           <div className="space-y-4 p-4">
             <StatCards />
             <ChartsPanel />
