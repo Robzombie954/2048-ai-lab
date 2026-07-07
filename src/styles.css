@@ -1,0 +1,153 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+
+  /* Neutral ramp is zinc; the one accent is "2048 gold". */
+  --color-gold-300: #f4d872;
+  --color-gold-400: #eecb4b;
+  --color-gold-500: #edc22e;
+  --color-gold-600: #d4a917;
+
+  --color-surface-0: #0a0a0e;
+  --color-surface-1: #121218;
+  --color-surface-2: #191922;
+  --color-surface-3: #22222d;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-surface-0);
+  color: #e4e4e7; /* zinc-200 */
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── board & tiles ─────────────────────────────────────────────── */
+
+.board-frame {
+  --gap: 2.5%;
+  position: relative;
+  background: var(--color-surface-2);
+  border: 1px solid rgb(255 255 255 / 0.06);
+}
+
+.board-cell {
+  background: rgb(255 255 255 / 0.045);
+  border-radius: 8px;
+}
+
+.tile {
+  position: absolute;
+  /* gap 2.5% → tile = (100 − 5·2.5)/4 = 21.875% of board; one step of
+     movement = (21.875 + 2.5)/21.875 = 111.4286% of the tile's own size. */
+  top: 2.5%;
+  left: 2.5%;
+  width: 21.875%;
+  height: 21.875%;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  will-change: transform;
+  transform: var(--tf);
+  transition: transform var(--slide-ms, 100ms) ease-in-out;
+}
+
+.tile.instant {
+  transition: none;
+}
+
+.tile-spawn {
+  animation: tile-spawn 160ms ease-out backwards;
+}
+
+.tile-merge {
+  animation: tile-merge 190ms ease-out;
+}
+
+@keyframes tile-spawn {
+  from {
+    transform: var(--tf) scale(0);
+  }
+  to {
+    transform: var(--tf) scale(1);
+  }
+}
+
+@keyframes tile-merge {
+  0% {
+    transform: var(--tf) scale(1);
+  }
+  45% {
+    transform: var(--tf) scale(1.16);
+  }
+  100% {
+    transform: var(--tf) scale(1);
+  }
+}
+
+/* ── direction viz ─────────────────────────────────────────────── */
+
+.dir-bar {
+  transition: width 140ms ease-out, background-color 140ms ease-out;
+}
+
+@keyframes chosen-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(237 194 46 / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgb(237 194 46 / 0);
+  }
+}
+
+.chosen-pulse {
+  animation: chosen-pulse 500ms ease-out;
+}
+
+@keyframes flash-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.flash-in {
+  animation: flash-in 220ms ease-out backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .dir-bar {
+    transition: none;
+  }
+  .tile-spawn,
+  .tile-merge,
+  .chosen-pulse,
+  .flash-in {
+    animation: none;
+  }
+}
+
+/* uPlot dark theming */
+.u-legend {
+  color: #a1a1aa;
+  font-size: 11px;
+}
