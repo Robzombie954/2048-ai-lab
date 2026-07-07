@@ -33,7 +33,7 @@ const TREND_STYLE: Record<TrendLabel, { chip: string; text: string }> = {
   converging: { chip: 'border-sky-400/20 bg-sky-400/[0.08] text-sky-200', text: 'converging' },
   converged: {
     chip: 'border-amber-400/20 bg-amber-400/[0.08] text-amber-200',
-    text: 'converged · near capacity',
+    text: 'converged',
   },
   falling: { chip: 'border-red-400/20 bg-red-400/[0.08] text-red-200', text: 'falling' },
 }
@@ -126,6 +126,7 @@ function LearningCurve({ all }: { all: StatBucket[] }) {
   const activeDoc = useLabStore((s) => s.activeDoc)
   const models = useLabStore((s) => s.models)
   const planningDepth = useLabStore((s) => s.planningDepth)
+  const partialBucket = useLabStore((s) => s.partialBucket)
   const [yMode, setYMode] = useState<'focus' | 'full'>('focus')
   const [compareId, setCompareId] = useState<string | null>(null)
   const [compareBuckets, setCompareBuckets] = useState<StatBucket[]>([])
@@ -152,7 +153,7 @@ function LearningCurve({ all }: { all: StatBucket[] }) {
   const compareDoc = compareId ? models.find((m) => m.id === compareId) : null
   const compareActive = !!compareId && compareBuckets.length > 0
 
-  const { data, summary, focusMax } = useMemo(() => {
+  const { data, focusMax } = useMemo(() => {
     const x = xVals(all)
     const means = all.map(safeBucketMean)
     const stds = all.map(bucketStd)
@@ -190,8 +191,26 @@ function LearningCurve({ all }: { all: StatBucket[] }) {
       series.push(resampleOnto(combinedX, cx, cMeans)) // 8 compare average
     }
 
-    return { data: series, summary: summarizeTrajectory(x, means, 14), focusMax: fMax * 1.12 }
+    return { data: series, focusMax: fMax * 1.12 }
   }, [all, ceiling, compareActive, compareBuckets])
+
+  // Trend summary from COMPLETED buckets only — the live partial bucket jitters
+  // the slope every ~0.5s and would flip the label (and its pop-in callout),
+  // which shoves the whole panel around. Completed-only settles it.
+  const rawSummary = useMemo(() => {
+    const complete = partialBucket && all.length > 0 ? all.slice(0, -1) : all
+    return summarizeTrajectory(complete.map(bucketX), complete.map(safeBucketMean), 14)
+  }, [all, partialBucket])
+
+  // Latch the shown trend so 'converged' never flickers back to 'converging'.
+  const [shownLabel, setShownLabel] = useState<TrendLabel | null>(null)
+  useEffect(() => {
+    setShownLabel(null)
+  }, [activeDoc?.id])
+  useEffect(() => {
+    const l = rawSummary?.label
+    if (l) setShownLabel((prev) => (prev === 'converged' && l === 'converging' ? prev : l))
+  }, [rawSummary?.label])
 
   const options = useMemo<Omit<uPlot.Options, 'width' | 'height'>>(() => {
     const series: uPlot.Series[] = [
@@ -230,18 +249,18 @@ function LearningCurve({ all }: { all: StatBucket[] }) {
     }
   }, [yMode, focusMax, ceiling, compareActive])
 
-  const trend = summary ? TREND_STYLE[summary.label] : null
-  const deltaText = summary
-    ? `${summary.deltaPerThousandGames >= 0 ? '+' : ''}${formatCompact(summary.deltaPerThousandGames)}/1k`
+  const trend = shownLabel ? TREND_STYLE[shownLabel] : null
+  const deltaText = rawSummary
+    ? `${rawSummary.deltaPerThousandGames >= 0 ? '+' : ''}${formatCompact(rawSummary.deltaPerThousandGames)}/1k`
     : 'warming up'
 
   const otherModels = models.filter((m) => m.id !== activeDoc?.id)
-  const isConverged = summary?.label === 'converged'
+  const isConverged = shownLabel === 'converged'
 
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-white/10 p-0.5 text-[11px]">
+      <div className="mb-2 flex h-7 items-center justify-between gap-2">
+        <div className="flex shrink-0 items-center gap-1 rounded-lg border border-white/10 p-0.5 text-[11px]">
           {(['focus', 'full'] as const).map((m) => (
             <button
               key={m}
@@ -261,10 +280,12 @@ function LearningCurve({ all }: { all: StatBucket[] }) {
         </div>
         {trend && (
           <div
-            className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold tabular-nums ${trend.chip}`}
-            title={`Trend over the latest buckets: ${formatCompact(summary!.deltaPerThousandGames)} score per 1,000 games`}
+            className={`flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1 text-[11px] font-semibold tabular-nums ${trend.chip}`}
+            title={`Trend over the latest completed buckets: ${rawSummary ? formatCompact(rawSummary.deltaPerThousandGames) : 0} score per 1,000 games`}
           >
-            {trend.text} · {deltaText}
+            <span>{trend.text} ·</span>
+            {/* Fixed-width so a changing number can't reflow/wrap the header. */}
+            <span className="inline-block min-w-[56px] text-right">{deltaText}</span>
           </div>
         )}
       </div>

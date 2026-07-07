@@ -65,16 +65,20 @@ export function StatCards() {
             <div className="mt-1 font-mono text-2xl font-semibold tabular-nums text-zinc-100">
               {c.value}
             </div>
-            {c.sub && <div className="mt-0.5 text-[11px] text-zinc-600">{c.sub}</div>}
+            {/* Always reserve the sub line so cards stay equal height when a
+                sub appears/disappears (prevents grid-row jumps). */}
+            <div className="mt-0.5 min-h-[14px] text-[11px] text-zinc-600">{c.sub ?? ''}</div>
           </div>
         ))}
       </div>
       {live && (
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 rounded-xl border border-white/5 bg-surface-1 px-4 py-3 font-mono text-[11px] tabular-nums text-zinc-500">
+        <div className="mt-3 flex flex-nowrap gap-x-5 overflow-x-auto whitespace-nowrap rounded-xl border border-white/5 bg-surface-1 px-4 py-3 font-mono text-[11px] tabular-nums text-zinc-500">
           <span title="Mean absolute TD error (exponential moving average)">
             |δ| {live.meanAbsTdError.toFixed(live.meanAbsTdError >= 10 ? 0 : 3)}
           </span>
-          <span>α {live.learningRate}</span>
+          <span title="Effective learning rate (reflects annealing)">
+            α {live.learningRate.toFixed(3)}
+          </span>
           {live.epsilon !== undefined && <span>ε {live.epsilon.toFixed(3)}</span>}
           {live.replayFill !== undefined && (
             <span>replay {(live.replayFill * 100).toFixed(0)}%</span>
